@@ -70,11 +70,13 @@ class Post(Document):
     """
     reddit_post_id = StringField(required=True, unique=True)
     subreddit = StringField(required=True)
-    created_at = DateTimeField(required=True)
+    time_scraped = DateTimeField(required=True)
+    time_created = DateTimeField(required=True)
     title = StringField(required=True)
     reddit_user_id = StringField(required=True)
     sentiment = StringField()
     action_type = StringField()
+    category = StringField()
     
     # Many-to-One relationships with Keywords and Topics
     keywords = ListField(ReferenceField('Keyword'))
@@ -151,13 +153,15 @@ def save_post_to_db(extracted_data, reddit_user_id):
     post = Post(
         reddit_post_id=extracted_data['title'],  # You might have another ID for Reddit post, adjust if needed
         subreddit=extracted_data['subreddit'],
-        created_at=extracted_data['time_scraped'],
+        time_scraped=extracted_data['time_scraped'],
+        time_created=extracted_data["time_created"],
         title=extracted_data['title'],
         reddit_user_id=user.reddit_user_id,
         sentiment=', '.join(extracted_data['sentiment']),
         action_type=', '.join(extracted_data['actions_next_steps']),
         keywords=[],  # Will add keywords separately
-        topics=[]  # Will add topics separately
+        topics=[],  # Will add topics separately
+        category=extracted_data["category"]
     )
     post.save()
 

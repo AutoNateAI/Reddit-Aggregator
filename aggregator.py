@@ -55,10 +55,9 @@ def fetch_and_aggregate_data(interval=3600):
                     extracted_info = extract_post_info(title, content, subreddit_name, category)
 
                     # Add the posted time before uploading to the database
-                    extracted_info["posted_time"] = posted_time.isoformat()
+                    extracted_info["time_created"] = posted_time.isoformat()
 
-                    # Upload to DB (pseudo code, replace with actual DB logic)
-                    upload_to_db(extracted_info)
+                    extracted_info["category"] = category
 
                     # Save data to db
                     save_post_to_db(extracted_info, reddit_user_id)
@@ -68,14 +67,6 @@ def fetch_and_aggregate_data(interval=3600):
         print(f"Waiting {interval} seconds for the next run...")
         time.sleep(interval)
 
-
-def upload_to_db(data):
-    """
-    Placeholder function for database upload.
-    Implement this with actual DB logic (e.g., SQLAlchemy, MongoDB, etc.).
-    """
-    import pprint
-    pprint.pprint(f"Uploading data to DB: {data}")
 
 
 if __name__ == "__main__":
