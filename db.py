@@ -59,8 +59,6 @@ class Post(Document):
         Timestamp for when the post was created.
     title : str
         Title of the Reddit post.
-    content : str
-        The full content of the Reddit post.
     reddit_user_id : str
         The Reddit user ID of the user who made the post.
     sentiment : str
@@ -76,7 +74,6 @@ class Post(Document):
     subreddit = StringField(required=True)
     created_at = DateTimeField(required=True)
     title = StringField(required=True)
-    content = StringField()
     reddit_user_id = StringField(required=True)
     sentiment = StringField()
     action_type = StringField()
