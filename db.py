@@ -22,9 +22,6 @@ def connect_to_db():
     except Exception as e:
         print(f"Error connecting to MongoDB: {e}")
 
-
-
-
 # Define the ORM models (collections) for MongoDB using mongoengine
 
 class User(Document):
