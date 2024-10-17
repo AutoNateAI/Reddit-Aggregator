@@ -1,4 +1,3 @@
-import time
 import asyncpraw
 from datetime import datetime
 from ai_engine import extract_post_info 
