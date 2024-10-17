@@ -56,7 +56,8 @@ def fetch_and_aggregate_data(interval=3600, limit=1):
                     title = post.title
                     content = post.selftext
                     posted_time = datetime.fromtimestamp(post.created_utc)
-                    reddit_user_id = post.author.name if post.author else "Unknown"
+                    username = post.author.name if post.author else "Unknown"
+                    reddit_user_id = post.author.id if post.author else "Unknown"
 
                     # Call the AI function to extract relevant info
                     extracted_info = extract_post_info(title, content, subreddit_name, category)
@@ -65,9 +66,12 @@ def fetch_and_aggregate_data(interval=3600, limit=1):
                     extracted_info["time_created"] = posted_time.isoformat()
                     extracted_info["reddit_post_id"] = reddit_post_id
                     extracted_info["category"] = category
+                    extracted_info["filter_type"] = "new"
+                    extracted_info["username"] = username
+                    extracted_info["reddit_user_id"] = reddit_user_id
 
                     # Save data to db
-                    save_post_to_db(extracted_info, reddit_user_id)
+                    save_post_to_db(extracted_info, username)
                     print("Post saved.")
 
         # Wait for the next iteration
