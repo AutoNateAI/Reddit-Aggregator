@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
+from mongoengine import DoesNotExist
 from mongoengine import Document, StringField, DateTimeField, ReferenceField, ListField, connect
-import os
+import os, datetime
 
 load_dotenv()
 
@@ -123,6 +124,70 @@ class Keyword(Document):
     meta = {'collection': 'keywords'}
 
 
+# Connect to the MongoDB database
+def connect_to_db():
+    try:
+        connect(MONGODB_DATABASE, host=connection_string)
+        print("Connected to the MongoDB Atlas database!")
+    except Exception as e:
+        print(f"Error connecting to MongoDB: {e}")
+
+def save_post_to_db(extracted_data, reddit_user_id):
+    """
+    Function to save the scraped post data to the MongoDB database.
+    This function checks if the user already exists and if the post is already saved,
+    then it saves the post, topics, and keywords.
+    """
+
+    # Check if user exists, otherwise create a new user
+    try:
+        user = User.objects.get(reddit_user_id=reddit_user_id)
+    except DoesNotExist:
+        user = User(
+            reddit_user_id=reddit_user_id,
+            username=reddit_user_id,  # Assumes you are using reddit_user_id as the username (you can modify this)
+            created_at=datetime.datetime.now()
+        )
+        user.save()
+
+    # Save the post
+    post = Post(
+        reddit_post_id=extracted_data['title'],  # You might have another ID for Reddit post, adjust if needed
+        subreddit=extracted_data['subreddit'],
+        created_at=extracted_data['time_scraped'],
+        title=extracted_data['title'],
+        reddit_user_id=user.reddit_user_id,
+        sentiment=', '.join(extracted_data['sentiment']),
+        action_type=', '.join(extracted_data['actions_next_steps']),
+        keywords=[],  # Will add keywords separately
+        topics=[]  # Will add topics separately
+    )
+    post.save()
+
+    # Save associated topics
+    for topic in extracted_data['topics_discussed']:
+        topic_obj = Topic(
+            post=post,
+            topic=topic,
+            created_at=datetime.datetime.now()
+        )
+        topic_obj.save()
+        post.topics.append(topic_obj)
+
+    # Save associated keywords
+    for keyword in extracted_data['keywords']:
+        keyword_obj = Keyword(
+            post=post,
+            keyword=keyword,
+            created_at=datetime.datetime.now()
+        )
+        keyword_obj.save()
+        post.keywords.append(keyword_obj)
+
+    # Save the post again to update with references to topics and keywords
+    post.save()
+
     
 if __name__ == "__main__":
     connect_to_db()
+
