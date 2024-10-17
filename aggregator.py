@@ -1,9 +1,10 @@
 import time
-import praw  # Reddit API
+import asyncpraw
 from datetime import datetime
 from ai_engine import extract_post_info 
 from dotenv import load_dotenv
 from db import connect_to_db, save_post_to_db, Post
+from tele_bot import send_to_telegram
 import os
 
 load_dotenv()
@@ -13,25 +14,28 @@ REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
 REDDIT_CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET")
 REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
 
-reddit = praw.Reddit(
-    client_id=REDDIT_CLIENT_ID,
-    client_secret=REDDIT_CLIENT_SECRET,
-    user_agent=REDDIT_USER_AGENT
-)
+async def create_reddit_client():
+    return asyncpraw.Reddit(
+        client_id=REDDIT_CLIENT_ID,
+        client_secret=REDDIT_CLIENT_SECRET,
+        user_agent=REDDIT_USER_AGENT
+    )
 
 # Sample category and subreddit list
 subreddit_categories = [
     {
-        "category": "Education",
-        "subreddits": ["learnpython", "MachineLearning", "python"]
+        "category": "Teaching Python",
+        "subreddits": ["learnpython"],
+        "tele_addy": "5871291837"
     },
     {
-        "category": "Technology",
-        "subreddits": ["technology", "programming", "gadgets"]
+        "category": "SaaS Development",
+        "subreddits": ["startups", "Entrepreneur"],
+        "tele_addy": "5871291837"
     }
 ]
 
-def fetch_and_aggregate_data(interval=3600, limit=1):
+async def fetch_and_aggregate_data(reddit, interval=3600, limit=1):
     """
     Function that runs on a loop and grabs the most recent post from each subreddit.
     The interval can be set in seconds, default is 1 hour (3600 seconds).
@@ -42,10 +46,10 @@ def fetch_and_aggregate_data(interval=3600, limit=1):
             subreddits = category_obj["subreddits"]
 
             for subreddit_name in subreddits:
-                subreddit = reddit.subreddit(subreddit_name)
+                subreddit = await reddit.subreddit(subreddit_name)
                 
-                # Grab the most recent post
-                for post in subreddit.new(limit=limit):
+                # Use async for to iterate over the async generator
+                async for post in subreddit.new(limit=limit):
                     reddit_post_id = post.id
 
                     # Check if the post already exists in the database
@@ -56,8 +60,17 @@ def fetch_and_aggregate_data(interval=3600, limit=1):
                     title = post.title
                     content = post.selftext
                     posted_time = datetime.fromtimestamp(post.created_utc)
-                    username = post.author.name if post.author else "Unknown"
-                    reddit_user_id = post.author.id if post.author else "Unknown"
+                    # Load the author object before accessing its attributes
+                    if post.author:
+                        await post.author.load()  # Load the author object
+                        reddit_user_id = post.author.id if post.author else "Unknown"
+                        username = post.author.name if post.author else "Unknown"
+                    else:
+                        reddit_user_id = "Unknown"
+                        username = "Unknown"
+
+                    # username = post.author.name if post.author else "Unknown"
+                    # reddit_user_id = post.author.id if post.author else "Unknown"
 
                     # Call the AI function to extract relevant info
                     extracted_info = extract_post_info(title, content, subreddit_name, category)
@@ -70,17 +83,22 @@ def fetch_and_aggregate_data(interval=3600, limit=1):
                     extracted_info["username"] = username
                     extracted_info["reddit_user_id"] = reddit_user_id
 
+                    # send message to telegram
+                    await send_to_telegram(category_obj["tele_addy"], extracted_info, category)
+
                     # Save data to db
                     save_post_to_db(extracted_info, username)
                     print("Post saved.")
 
         # Wait for the next iteration
         print(f"Waiting {interval} seconds for the next run...")
-        time.sleep(interval)
+        await asyncio.sleep(interval)
 
-
-
+async def main():
+    connect_to_db()
+    reddit = await create_reddit_client()
+    await fetch_and_aggregate_data(reddit, limit=3)
 
 if __name__ == "__main__":
-    connect_to_db()
-    fetch_and_aggregate_data()
+    import asyncio
+    asyncio.run(main())

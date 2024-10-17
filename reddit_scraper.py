@@ -1,4 +1,5 @@
 import praw
+import asyncpraw
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
@@ -20,7 +21,7 @@ def reddit_client():
     praw.Reddit
         The authenticated Reddit client object.
     """
-    return praw.Reddit(
+    return asyncpraw.Reddit(
         client_id=REDDIT_CLIENT_ID,  # Replace with your Reddit API client ID
         client_secret=REDDIT_CLIENT_SECRET,  # Replace with your Reddit API client secret
         user_agent=REDDIT_USER_AGENT,  # Replace with your user agent

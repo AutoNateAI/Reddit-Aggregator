@@ -7,8 +7,11 @@ import re
 load_dotenv()
 
 TELEGRAM_BOT_PYTHON_GUIDANCE_API_KEY = os.getenv("TELEGRAM_BOT_PYTHON_GUIDANCE_API_KEY")
+TELEGRAM_BOT_SAAS_CREATION_API_KEY = os.getenv("TELEGRAM_BOT_SAAS_CREATION_API_KEY")
 
-bot = Bot(token=TELEGRAM_BOT_PYTHON_GUIDANCE_API_KEY)
+
+py_bot = Bot(token=TELEGRAM_BOT_PYTHON_GUIDANCE_API_KEY)
+saas_bot = Bot(token=TELEGRAM_BOT_SAAS_CREATION_API_KEY)
 
 def escape_html(text):
     """
@@ -16,7 +19,7 @@ def escape_html(text):
     """
     return re.sub(r'([&<>])', lambda x: {'&': '&amp;', '<': '&lt;', '>': '&gt;'}.get(x.group(), x.group()), text)
 
-async def send_to_telegram(chat_id, extracted_data):
+async def send_to_telegram(chat_id, extracted_data, category):
     """
     Sends a formatted HTML message to the specified Telegram chat using the extracted_data object.
     """
@@ -26,7 +29,7 @@ async def send_to_telegram(chat_id, extracted_data):
     action_to_take = escape_html(', '.join(extracted_data.get('actions_next_steps', [])))
     suggested_response = escape_html(extracted_data.get('suggested_responses', ['No response available'])[0])
     summary = escape_html(extracted_data.get('summary', 'No summary available'))
-    post_url = f"https://www.reddit.com/{escape_html(extracted_data.get('reddit_post_id', ''))}"
+    post_url = f"https://www.reddit.com/r/{extracted_data["subreddit"]}/comments/{escape_html(extracted_data.get('reddit_post_id', ''))}"
 
     message = (
         f"<b>Title</b>: {title}\n"
@@ -37,8 +40,10 @@ async def send_to_telegram(chat_id, extracted_data):
         f"<b>Summary</b>: {summary}\n"
         f"<b>Post URL</b>: {post_url}"
     )
-
-    await bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.HTML)
+    if category == "Teaching Python":
+        await py_bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.HTML)
+    elif category == "SaaS Development":
+        await saas_bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.HTML)
 
 # Example usage
 if __name__ == "__main__":
@@ -46,6 +51,7 @@ if __name__ == "__main__":
 
     async def main():
         chat_id = "5871291837"  # Replace with your chat_id
+        chat_id2 = "5871291837"
         extracted_data = {
             "title": "Example Post",
             "topics_discussed": ["Topic 1", "Topic 2"],
