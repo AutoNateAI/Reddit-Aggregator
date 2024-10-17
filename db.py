@@ -151,7 +151,7 @@ def save_post_to_db(extracted_data, reddit_user_id):
 
     # Save the post
     post = Post(
-        reddit_post_id=extracted_data['title'],  # You might have another ID for Reddit post, adjust if needed
+        reddit_post_id=extracted_data['reddit_post_id'],  # You might have another ID for Reddit post, adjust if needed
         subreddit=extracted_data['subreddit'],
         time_scraped=extracted_data['time_scraped'],
         time_created=extracted_data["time_created"],
